@@ -33,6 +33,8 @@
 			<Add option="-fexceptions" />
 		</Compiler>
 		<Unit filename="main.cpp" />
+		<Unit filename="test_in2.pgm" />
+		<Unit filename="test_out_2.pgm" />
 		<Extensions>
 			<code_completion />
 			<envvars />

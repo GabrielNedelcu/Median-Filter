@@ -3,22 +3,19 @@
 using namespace std;
 
 void bubble_sort(vector<int> &myArray);
-void merge_sort(vector<int> &myArray);
+void Unite(int st, int middle, int dr, vector<int>& a, vector<int>& aux);
+void Merge_sort(int st, int dr, vector<int>& a, vector<int> &aux);
+
 
 class Picture{
 public:
     string type; //the type of file: P2 or P5
-    string sort_type; //which sort algorithm should be used
-    int window_size;
     int width;
     int height;
     int white_level;
     vector<vector<int> > matrix;
 
-    Picture(char FILENAME[100], string i_sort_type, int i_window_size){
-        window_size=i_window_size;
-        sort_type=i_sort_type;
-
+    Picture(char FILENAME[100]){
         ifstream IN_FILE;
         IN_FILE.open(FILENAME);
 
@@ -44,15 +41,15 @@ public:
 
             IN_FILE>>white_level;
 
-            for(int i=0;i<height;i++){
+            for(int row=0;row<height;row++){
                 vector<int> temp;
-                for(int j=0;j<width;j++){
+                for(int col=0;col<width;col++){
                     int temp_value;
                     IN_FILE>>temp_value;
                     temp.push_back(temp_value);
                 }
                 matrix.push_back(temp);
-        }
+            }
 
         }
         else{
@@ -66,11 +63,11 @@ public:
         OUT_FILE.open(FILENAME);
 
         if(OUT_FILE.is_open()){
-            OUT_FILE<<type<<" "<<window_size<<" "<<sort_type<<" "<<width<<" "<<height<<" "<<white_level<<endl;
+            OUT_FILE<<type<<endl<<width<<" "<<height<<endl<<white_level<<endl;
 
-            for(int i=0;i<height;i++){
-                for(int j=0;j<width;j++)
-                    OUT_FILE<<matrix[i][j]<<" ";
+            for(int row=0;row<height;row++){
+                for(int col=0;col<width;col++)
+                    OUT_FILE<<matrix[row][col]<<" ";
                 OUT_FILE<<endl;
             }
         }
@@ -79,61 +76,106 @@ public:
         }
 
     }
-
 };
 
+int calculate_new_pixel_value(vector<vector<int> > &matrix, int x, int y, int width, int height,string sort_type, int window_size){
+    int dir, counter=0;
+    dir=(window_size-1)/2;  //how much should i go left, right, up, down from the current position
+
+    vector<int> values;
+
+    for(int row=x-dir; row<=x+dir; row++){
+        for(int col=y-dir; col<=y+dir; col++){
+            int tmp_row, tmp_col;
+            tmp_row=row;
+            tmp_col=col;
+            //change the indexes in case the pixel is out of range
+            if(row<0)   tmp_row=0;
+            if(row>height-1) tmp_row=height-1;
+            if(col<0)   tmp_col=0;
+            if(col>width-1) tmp_col=width-1;
+
+            values.push_back(matrix[tmp_row][tmp_col]); //add the value to my array
+            counter++;
+        }
+    }
+
+    //sort the values and return the middle one
+
+    if(sort_type.compare("merge")==0){
+        vector<int> aux(counter+1, 0);
+        Merge_sort(0,counter-1,values,aux);
+        return values.at(window_size*window_size/2);
+    }
+
+    else if(sort_type.compare("bubble")==0){
+        bubble_sort(values);
+        return values.at(window_size*window_size/2);
+    }
+
+    else{
+        cout<<"Error: The sorting method is not recognised";
+        return -1;
+    }
+
+}
+
+void filter(Picture &my_picture, string sort_type, int window_size){
+
+        vector<vector<int> > my_picture_copy(my_picture.matrix); //copy of the original matrix
+
+        for(int row=0;row<my_picture.height;row++){
+            for(int col=0;col<my_picture.width;col++){
+                //update the original matrix
+                my_picture.matrix[row][col]=calculate_new_pixel_value(my_picture_copy, row, col, my_picture.width,my_picture.height, sort_type, window_size);
+            }
+        }
+}
+
 void bubble_sort(vector<int> &myArray){
-    for(int i=0; i<myArray.size()-1; i++)
-        for(int j=0; j<myArray.size()-i-1;j++)
+    for(unsigned i=0; i<myArray.size()-1; i++)
+        for(unsigned j=0; j<myArray.size()-i-1;j++)
             if(myArray[j]>myArray[j+1])
                 swap(myArray[j], myArray[j+1]);
 }
 
-vector<int> merge(vector<int> left,vector<int> right){
-  int leftCount = 0;
-  int rightCount = 0;
+void Unite(int st, int middle, int dr, vector<int>& a, vector<int>& aux){
+    int i = st;
+    int j = middle+1;
+    int k=0;
 
-  vector<int> results;
-
-  bool useLeft;
-  for (int i=0; i<left.size()+right.size();i++){
-    if(leftCount<left.size()){
-      if(rightCount<right.size()){
-        useLeft = (left[leftCount] < right[rightCount]);
-      }
-      else{
-        useLeft = true;
-      }
-    }
-    else{
-      useLeft = false;
+    while(i<=middle && j<=dr){
+        if(a.at(i)<a.at(j)){
+            aux.at(++k)=a.at(i);
+            i++;
+        }
+        else{
+            aux.at(++k)=a.at(j);
+            j++;
+        }
     }
 
-    if (useLeft){
-      results.push_back(left[leftCount]);
-      if (leftCount < left.size()){
-        leftCount++;
-      }
-    }
-    else{
-      results.push_back(right[rightCount]);
-      if (rightCount<right.size()){
-        rightCount++;
-      }
-    }
-  }
-  return results;
+    while(i<=middle){
+            aux.at(++k)=a.at(i);
+            i++;
+        }
+    while(j<=dr){
+            aux.at(++k)=a.at(j);
+            j++;
+        }
+
+    for(int i=st; i<=dr; ++i)
+        a.at(i)=aux.at(i-st+1);
 }
 
-vector<int> mergeSort(vector<int> arr){
-  if (arr.size() <= 1){
-    return arr;
-  }
-  int len = floor(arr.size()/2);
-  vector<int> left(arr.begin(), arr.begin()+len);
-  vector<int> right(arr.begin()+len, arr.end());
-
-  return merge(mergeSort(left),mergeSort(right));
+void Merge_sort(int st, int dr, vector<int>& a, vector<int> &aux){
+    int m;
+    if(dr>st){
+        m=(st+dr)/2;
+        Merge_sort(st, m, a, aux);
+        Merge_sort(m+1, dr, a, aux);
+        Unite(st, m, dr, a, aux);
+    }
 }
 
 
@@ -145,22 +187,11 @@ int main(){
 
     cin>>type_of_sort>>window_size>>IN_FILE_NAME>>OUT_FILE_NAME;
 
-    Picture my_picture(IN_FILE_NAME, type_of_sort, window_size);
+    Picture my_picture(IN_FILE_NAME);
+
+    filter(my_picture, type_of_sort, window_size);
 
     my_picture.print_data(OUT_FILE_NAME);
-
-    vector<int> a_vect;
-    for(int i=0;i<window_size;i++){
-        int temp;
-        cin>>temp;
-        a_vect.push_back(temp);
-    }
-
-    //bubble_sort(a_vect);
-    a_vect=mergeSort(a_vect);
-
-    for(int i=0;i<a_vect.size();i++)
-        cout<<a_vect[i]<<" ";
 
     return 0;
 }
