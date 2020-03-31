@@ -22,7 +22,7 @@ public:
         if(IN_FILE.is_open()){
             string line;
 
-            getline(IN_FILE, type);
+            getline(IN_FILE, type); //get the pgm type
             getline(IN_FILE, line);
             //get through the comments
             while(line[0]=='#'){
@@ -39,7 +39,9 @@ public:
             stringstream(temp) >> height;
             temp="";
 
-            IN_FILE>>white_level;
+            IN_FILE>>white_level; //get the white level
+
+            //read the image matrix
 
             for(int row=0;row<height;row++){
                 vector<int> temp;
@@ -78,12 +80,10 @@ public:
     }
 };
 
-int calculate_new_pixel_value(vector<vector<int> > &matrix, int x, int y, int width, int height,string sort_type, int window_size, vector<int> &aux){
+int calculate_new_pixel_value(vector<vector<int> > &matrix, int x, int y, int width, int height,string sort_type, int window_size, vector<int> &aux, vector<int> &values){
     int dir, counter=0;
     dir=(window_size-1)/2;  //how much should i go left, right, up, down from the current position
-
-    vector<int> values;
-
+    //go through the window of the current pixel
     for(int row=x-dir; row<=x+dir; row++){
         for(int col=y-dir; col<=y+dir; col++){
             int tmp_row, tmp_col;
@@ -95,7 +95,7 @@ int calculate_new_pixel_value(vector<vector<int> > &matrix, int x, int y, int wi
             if(col<0)   tmp_col=0;
             if(col>width-1) tmp_col=width-1;
 
-            values.push_back(matrix[tmp_row][tmp_col]); //add the value to my array
+            values[counter]=matrix[tmp_row][tmp_col]; //add the value to my array
             counter++;
         }
     }
@@ -122,14 +122,18 @@ int calculate_new_pixel_value(vector<vector<int> > &matrix, int x, int y, int wi
 void filter(Picture &my_picture, string sort_type, int window_size){
 
         vector<vector<int> > my_picture_copy(my_picture.matrix); //copy of the original matrix
-        vector<int> aux(window_size*window_size+1, 0);
+        vector<int> aux(window_size*window_size+1, 0); //an auxiliary vector for the merge sort
+        vector<int> values(window_size*window_size+1, 0); //the vector containing the values of the window
+        //go through the matrix and get the new pixel value
         for(int row=0;row<my_picture.height;row++){
             for(int col=0;col<my_picture.width;col++){
                 //update the original matrix
-                my_picture.matrix[row][col]=calculate_new_pixel_value(my_picture_copy, row, col, my_picture.width,my_picture.height, sort_type, window_size, aux);
+                my_picture.matrix[row][col]=calculate_new_pixel_value(my_picture_copy, row, col, my_picture.width,my_picture.height, sort_type, window_size, aux, values);
             }
         }
 }
+
+//bubble sort and merge sort algorithms
 
 void bubble_sort(vector<int> &myArray){
     for(unsigned i=0; i<myArray.size()-1; i++)
@@ -142,7 +146,6 @@ void Unite(int st, int middle, int dr, vector<int>& a, vector<int>& aux){
     int i = st;
     int j = middle+1;
     int k=0;
-
     while(i<=middle && j<=dr){
         if(a.at(i)<a.at(j)){
             aux.at(++k)=a.at(i);
@@ -153,7 +156,6 @@ void Unite(int st, int middle, int dr, vector<int>& a, vector<int>& aux){
             j++;
         }
     }
-
     while(i<=middle){
             aux.at(++k)=a.at(i);
             i++;
@@ -184,25 +186,14 @@ int main(){
 
     char IN_FILE_NAME[100], OUT_FILE_NAME[100];
 
-    clock_t t_start, t_end;
-
-    t_start=clock();
-
     cin>>type_of_sort>>window_size>>IN_FILE_NAME>>OUT_FILE_NAME;
 
 
-    Picture my_picture(IN_FILE_NAME);
+    Picture my_picture(IN_FILE_NAME); //construct my image
 
-    filter(my_picture, type_of_sort, window_size);
+    filter(my_picture, type_of_sort, window_size); //filter the image
 
-    my_picture.print_data(OUT_FILE_NAME);
-
-    t_end=clock();
-
-    double time_taken = double(t_end - t_start) / double(CLOCKS_PER_SEC);
-    cout << "Time taken by program is : " << fixed
-         << time_taken << setprecision(5);
-    cout << " sec " << endl;
+    my_picture.print_data(OUT_FILE_NAME); //print the image
 
     return 0;
 }
